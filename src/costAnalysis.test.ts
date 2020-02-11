@@ -490,7 +490,7 @@ describe('Cost analysis Tests', () => {
     expect(() => {
       const visitor = new CostAnalysis(context, {
         maximumCost: 1000,
-        complexityRange: {}
+        complexityRange: {} as {min: number; max: number}
       })
       visit(ast, visitWithTypeInfo(typeInfo, visitor))
     }).toThrow('Invalid minimum and maximum complexity')
