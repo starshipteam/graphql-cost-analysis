@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "es2017",
+        "moduleResolution": "node",
+        "module": "commonjs",
+        "sourceMap": true,
+        "declaration": true,
+        "lib": ["esnext", "dom"],
+        "esModuleInterop": true,
+        "noUnusedLocals": true,
+        "noImplicitAny": false,
+        "outDir": "./dist"
+    },
+    "exclude": ["src/**/*.test.ts"]
+}

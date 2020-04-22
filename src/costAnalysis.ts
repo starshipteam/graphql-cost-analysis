@@ -1,4 +1,3 @@
-// @flow
 import assert from 'assert'
 import selectn from 'selectn'
 import { getArgumentValues } from 'graphql/execution/values'
@@ -7,10 +6,10 @@ import {
   GraphQLInterfaceType,
   Kind,
   getNamedType,
-  GraphQLError
+  GraphQLError,
 } from 'graphql'
 
-import type {
+import {
   ValidationContext,
   FragmentDefinitionNode,
   OperationDefinitionNode,
@@ -25,11 +24,11 @@ import type {
 
 export type CostAnalysisOptions = {
   maximumCost: number,
-  variables?: Object,
+  variables?: object,
   onComplete?: (cost: number) => void,
   createError?: (maximumCost: number, cost: number) => GraphQLError,
   defaultCost?: number,
-  costMap?: Object,
+  costMap?: object,
   complexityRange?: { min: number, max: number }
 }
 
@@ -40,10 +39,10 @@ type NodeType =
   | InlineFragmentNode
 
 type NodeCostConfiguration = {
-  multiplier?: ?number,
+  multiplier?: number,
   useMultipliers?: boolean,
   complexity?: number,
-  multipliers?: Array<number>
+  multipliers?: number[]
 }
 
 function costAnalysisMessage (max, actual) {
@@ -58,8 +57,8 @@ export default class CostAnalysis {
   cost: number
   options: CostAnalysisOptions
   fragments: { [name: string]: FragmentDefinitionNode }
-  OperationDefinition: Object
-  operationMultipliers: Array<number>
+  OperationDefinition: object
+  operationMultipliers: number[]
   defaultCost: number
   defaultComplexity: number
 
@@ -121,7 +120,7 @@ export default class CostAnalysis {
     }
   }
 
-  onOperationDefinitionLeave (): ?GraphQLError {
+  onOperationDefinitionLeave (): GraphQLError | null {
     if (this.options.onComplete) {
       this.options.onComplete(this.cost)
     }
@@ -144,11 +143,12 @@ export default class CostAnalysis {
     // multiplier is deprecated
     if (multiplier) {
       multipliers = multipliers.length ? multipliers : [multiplier]
-      process.env.NODE_ENV !== 'production' &&
+      if (process.env.NODE_ENV !== 'production') {
         console.warn(
           `The multiplier property is DEPRECATED and will be removed in the next release. \n` +
             `Please use the multipliers field instead.`
         )
+      }
     }
 
     if (
@@ -169,14 +169,14 @@ export default class CostAnalysis {
 
     if (useMultipliers) {
       if (multipliers.length) {
-        const multiplier = multipliers.reduce(
+        const multiplier2 = multipliers.reduce(
           (total, current) => total + current,
           0
         )
-        this.operationMultipliers = [...this.operationMultipliers, multiplier]
+        this.operationMultipliers = [...this.operationMultipliers, multiplier2] // todo
       }
       return this.operationMultipliers.reduce(
-        (acc, multiplier) => acc * multiplier,
+        (acc, multiplier3) => acc * multiplier3, // todo
         complexity
       )
     }
@@ -186,7 +186,7 @@ export default class CostAnalysis {
   getArgsFromCostMap (
     node: FieldNode,
     parentType: string,
-    fieldArgs: { [argument: string]: mixed }
+    fieldArgs: { [argument: string]: any }
   ) {
     const costObject =
       this.options.costMap &&
@@ -197,7 +197,8 @@ export default class CostAnalysis {
       return
     }
 
-    let { useMultipliers, multiplier, complexity, multipliers } = costObject
+    let { multiplier, multipliers} = costObject
+    const { useMultipliers, complexity } = costObject
     multiplier = multiplier && selectn(multiplier, fieldArgs)
     multipliers = this.getMultipliersFromString(multipliers, fieldArgs)
 
@@ -210,8 +211,8 @@ export default class CostAnalysis {
   }
 
   getMultipliersFromListNode (
-    listNode: $ReadOnlyArray<ValueNode>,
-    fieldArgs: { [argument: string]: mixed }
+    listNode: ReadonlyArray<ValueNode>,
+    fieldArgs: { [argument: string]: any }
   ) {
     const multipliers = []
     listNode.forEach(node => {
@@ -224,9 +225,9 @@ export default class CostAnalysis {
   }
 
   getMultipliersFromString (
-    multipliers: Array<string> = [],
-    fieldArgs: { [argument: string]: mixed }
-  ): Array<number> {
+    multipliers: string[] = [],
+    fieldArgs: { [argument: string]: any }
+  ): number[] {
     // get arguments values, convert to integer and delete 0 values from list
     return multipliers
       .map(multiplier => {
@@ -242,8 +243,8 @@ export default class CostAnalysis {
   }
 
   getArgsFromDirectives (
-    directives: $ReadOnlyArray<DirectiveNode>,
-    fieldArgs: { [argument: string]: mixed }
+    directives: ReadonlyArray<DirectiveNode>,
+    fieldArgs: { [argument: string]: any }
   ) {
     const costDirective = directives.find(
       directive => directive.name.value === 'cost'
@@ -261,7 +262,7 @@ export default class CostAnalysis {
         costDirective.arguments &&
         costDirective.arguments.find(arg => arg.name.value === 'multiplier')
 
-      const multipliersArg: ?ArgumentNode =
+      const multipliersArg: ArgumentNode | null =
         costDirective.arguments &&
         costDirective.arguments.find(arg => arg.name.value === 'multipliers')
 
@@ -273,7 +274,7 @@ export default class CostAnalysis {
           ? useMultipliersArg.value.value
           : true
 
-      const multipliers: Array<number> =
+      const multipliers: number[] =
         multipliersArg &&
         multipliersArg.value &&
         multipliersArg.value.kind === Kind.LIST
@@ -283,7 +284,7 @@ export default class CostAnalysis {
           )
           : []
 
-      const multiplier: ?number =
+      const multiplier: number | null =
         multiplierArg && multiplierArg.value.value
           ? Number(selectn(multiplierArg.value.value, fieldArgs))
           : undefined
@@ -306,8 +307,8 @@ export default class CostAnalysis {
 
   computeNodeCost (
     node: NodeType,
-    typeDef: ?GraphQLNamedType,
-    parentMultipliers: Array<number> = []
+    typeDef: GraphQLNamedType | null,
+    parentMultipliers: number[] = []
   ): number {
     if (!node.selectionSet) {
       return 0
@@ -321,9 +322,9 @@ export default class CostAnalysis {
       fields = typeDef.getFields()
     }
 
-    const selections: $ReadOnlyArray<SelectionNode> = node.selectionSet.selections
+    const selections: ReadonlyArray<SelectionNode> = node.selectionSet.selections
     let total = 0
-    let fragmentCosts = []
+    const fragmentCosts = []
 
     for (const childNode of selections) {
       // reset the operation multipliers with parentMultipliers for each childNode
@@ -333,7 +334,7 @@ export default class CostAnalysis {
 
       switch (childNode.kind) {
         case Kind.FIELD: {
-          const field: Object = fields[childNode.name.value]
+          const field: GraphQLNamedType = fields[childNode.name.value]
           // Invalid field, should be caught by other validation rules
           if (!field) {
             break
@@ -411,7 +412,7 @@ export default class CostAnalysis {
             this.context
               .getSchema()
               .getType(fragment.typeCondition.name.value)
-          let fragmentNodeCost = fragment
+          const fragmentNodeCost = fragment
             ? this.computeNodeCost(fragment, fragmentType, this.operationMultipliers)
             : this.defaultCost
           fragmentCosts.push(fragmentNodeCost)
@@ -426,7 +427,7 @@ export default class CostAnalysis {
               // $FlowFixMe: don't know why Flow thinks it could be undefined
               .getType(childNode.typeCondition.name.value)
           }
-          let fragmentNodeCost = childNode
+          const fragmentNodeCost = childNode
             ? this.computeNodeCost(childNode, inlineFragmentType, this.operationMultipliers)
             : this.defaultCost
           fragmentCosts.push(fragmentNodeCost)
