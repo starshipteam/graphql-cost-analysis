@@ -1,4 +1,3 @@
-// @flow
 import CostAnalysis from './costAnalysis'
 import { CostAnalysisOptions } from './CostAnalysis'
 import { ValidationContext } from 'graphql'
