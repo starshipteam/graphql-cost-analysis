@@ -1,4 +1,3 @@
-// @flow
 import assert from 'assert'
 import selectn from 'selectn'
 import { getArgumentValues } from 'graphql/execution/values'
